@@ -6,19 +6,15 @@ To run the project locally, follow these steps:
 1. Clone the repository:
    
    ```bash
-   git clone https://github.com/Sukumaporn2546/CalcPCB-backend.git
-   
-2. Navigate to the project folder:
+   git clone https://github.com/Sukumaporn2546/CalcPCB-backend.git   
 
-   ```bash
-   cd backend
    
-3. Install dependencies:
+2. Install dependencies:
 
    ```bash
    npm install
 
-4. Run the server
+3. Run the server
    
    ```bash
    npm run dev
