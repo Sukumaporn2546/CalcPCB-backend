@@ -1,11 +1,12 @@
 import express from "express";
 import dotenv from "dotenv";
-const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 import { connectDB } from "./config/db";
 import PCBRoutes from "./routes/PCBRoutes";
 import swaggerSpec from "./docs/swagger";
 import cors from "cors";
+import QuotationRoutes from './routes/QuotationRoutes';
+import SupplierRoutes from './routes/SupplierRoutes';
 //const cors = require("cors");
 
 
@@ -22,6 +23,8 @@ app.use(express.json()); //allow us to accept JSON data in the req.body
 
 
 app.use("/api/calculatePCB", PCBRoutes);
+app.use("/api/quotation", QuotationRoutes);
+app.use("/api/supplier",SupplierRoutes);
 
 app.use(
     "/api-docs",

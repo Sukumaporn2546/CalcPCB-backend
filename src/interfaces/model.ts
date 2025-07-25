@@ -1,11 +1,11 @@
 // body for front to send to back
-import {Types} from 'mongoose';
-export interface CalcPCBBody{
+import { Types } from 'mongoose';
+export interface CalcPCBBody {
     model_name: string,
     sup_name: string,
-    material:{
+    material: {
 
-    } ,
+    },
     layers: number,
     quantity: number,
     pcb_size: {
@@ -13,12 +13,12 @@ export interface CalcPCBBody{
         height: number,
         unit: string
     },
-    panel_size :{
+    panel_size: {
         width: number,
         height: number,
         unit: string
     },
-    cavity_up : number,
+    cavity_up: number,
     thickness: string,
     solder_mask: string,
     legend_silk_screen: string,
@@ -44,12 +44,13 @@ export interface CalcPCBBody{
 }
 
 export interface IPCBinDB {
+    _id?: string;
     model_name: string,
     supplier: string,
-    supplier_id: Types.ObjectId,  
+    supplier_id: Types.ObjectId,
     material: {
-        layers: string ,
-        base_material:string ,
+        layers: string,
+        base_material: string,
         thickness: string,
         copper_weight: string,
         surface_finish: string,
@@ -67,33 +68,37 @@ export interface IPCBinDB {
 
     cavity_up: number,
     solder_mask: string,
-    legend_silk_screen: string ,
+    legend_silk_screen: string,
     process: string,
     quantity: number,
     cost_usd: number,
     cost_in2: number,
-    area_in2_per_pcb: number ,
+    cost_in2_many?: {
+        [key: string]: number; 
+    };
+    cost_usd_many: object,
+    area_in2_per_pcb: number,
     price_usd_per_in2: number,
     price_thb_per_in2: number,
     area_m2_per_pcb: number,
     weight_kg: number,
 
-    cost:number,
-    totalCost:number,
+    cost: number,
+    totalCost: number,
 
     fix_cost: {
-        set_up_cost:number ,
+        set_up_cost: number,
         tooling: number,
     },
 
     variable_cost: {
-        fixture_charge:number ,
+        fixture_charge: number,
         express_cost: number,
         handling: number,
         fly_probe: number,
 
         shipment_cost: {
-            shipping_type:string ,
+            shipping_type: string,
             shipping_method: string,
             shipping_cost: number,
             combine: boolean,

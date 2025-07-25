@@ -15,8 +15,8 @@ const PCBSchema: Schema = new Schema({
     },
 
     pcb_size_mm: {
-        width: { type: Number, required: true },
-        height: { type: Number, required: true },
+        width: { type: Number },
+        height: { type: Number },
     },
 
     panel_size_mm: {
@@ -27,39 +27,42 @@ const PCBSchema: Schema = new Schema({
     cavity_up: { type: Number, required: true },
     solder_mask: { type: String, required: true },
     legend_silk_screen: {type: String, required: true},
-    process: {type: String, required: true},
-    quantity: { type: Number, required: true },
-    cost_usd: { type: Number, required: true },
+    process: { type: [String] },
+    quantity: { type: Number},
+    cost_usd: { type: Number },
     cost_in2: { type: Number},
 
-    area_in2_per_pcb: { type: Number, required: true },
-    price_usd_per_in2: { type: Number, required: true },
-    price_thb_per_in2: { type: Number, required: true },
-    area_m2_per_pcb: { type: Number, required: true },
-    weight_kg: { type: Number, required: true },
+    cost_usd_many: {type: Object},
+    cost_in2_many: {type: Object},
+
+    area_in2_per_pcb: { type: Number},
+    price_usd_per_in2: { type: Number},
+    price_thb_per_in2: { type: Number},
+    area_m2_per_pcb: { type: Number},
+    weight_kg: { type: Number },
 
     cost:{ type: Number},
     totalCost:{ type: Number},
 
     fix_cost: {
-        set_up_cost: { type: Number, required: true },
-        tooling: { type: Number, required: true },
+        set_up_cost: { type: Number},
+        tooling: { type: Number},
     },
 
     variable_cost: {
-        fixture_charge: { type: Number, required: true },
-        express_cost: { type: Number, required: true },
-        handling: { type: Number, required: true },
-        fly_probe: { type: Number, required: true },
+        fixture_charge: { type: Number },
+        express_cost: { type: Number },
+        handling: { type: Number },
+        fly_probe: { type: Number},
 
         shipment_cost: {
-            shipping_type: { type: String, required: true },
-            shipping_method: { type: String, required: true },
-            shipping_cost: { type: Number, required: true },
-            combine: { type: Boolean, required: true },
+            shipping_type: { type: String },
+            shipping_method: { type: String },
+            shipping_cost: { type: Number },
+            combine: { type: Boolean },
         },
     },
-} , { timestamps: true });
+} , { timestamps: true, strict: false });
 
 // Create and export model
 const PCBModel = mongoose.model('PCB', PCBSchema);

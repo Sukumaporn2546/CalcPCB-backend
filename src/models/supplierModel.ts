@@ -5,6 +5,7 @@ import mongoose, { Schema, Document, model } from 'mongoose';
 // Schema definition
 const supplierSchema: Schema = new Schema({
     sup_name: { type: String, required: true },
+    models: {type: [String]}
 }, { timestamps: true });
 
 // Create and export model
