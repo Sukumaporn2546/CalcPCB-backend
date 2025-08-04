@@ -57,8 +57,8 @@ export interface ICalculateCostBasePriceInput {
     copper_weight: string;
     surface_finish: string;
     layers: string;
-    base_materail: string;
-    thickeness: string;
+    base_material: string;
+    thickness: string;
   };
   solder_mask: string;
   legend_silk_screen: string;
@@ -128,6 +128,7 @@ export function calculatePCBCost(data: ICalculateCostInput): ICost {
           break;
         default:
           price = model.cost_in2 ?? 0;
+          break;
       }
     } else {
       price = model.cost_in2 ?? 0;
@@ -155,8 +156,9 @@ export function calculatePCBCost(data: ICalculateCostInput): ICost {
     }
   }
 
-  //console.log('price: ', price, areaIn2, exchange_rate);
-  const cost = calcMaterialCost(price, areaIn2, exchange_rate);
+  console.log('price: ', price, areaIn2, exchange_rate);
+  const cost = calcMaterialCost(price, areaIn2, exchange_rate);  
+  console.log('costInPCBCostService', cost)                                                                   
   const totalCost = calcTotalMaterialCost(cost, quantity);
   const allCostPerPCB = calcAllCostPerPCB(
     fixture_charge,
@@ -246,7 +248,7 @@ export function calculatePCBCostFromBasePrice(
 
   const baseMaterialPrice = getAveragePrice(
     Category.MATERIAL,
-    material.base_materail
+    material.base_material
   );
   const layerPrice = getAveragePrice(Category.LAYER, material.layers);
   const copperWeightPrice = getAveragePrice(
@@ -272,7 +274,7 @@ export function calculatePCBCostFromBasePrice(
 
   const thicknessPrice = getAveragePrice(
     Category.THICKNESS,
-    material.thickeness
+    material.thickness
   );
 
   let processPrices = 0;
@@ -392,7 +394,7 @@ export async function calculatePCBCostFromAITrainModel(
 
   const { width: width_panel, height: height_panel } = panel_size;
   const { width: width_pcb, height: height_pcb } = pcb_size;
-  const { copper_weight, surface_finish, layers, base_materail, thickeness } =
+  const { copper_weight, surface_finish, layers, base_material, thickness } =
     material;
   const { setup_cost, tooling } = fix_cost;
   const { fixture_charge, express_cost, handling, fly_probe, shipment_cost } =
@@ -402,8 +404,8 @@ export async function calculatePCBCostFromAITrainModel(
   const aiInput = {
     supplier: sup_name ?? "", // string
     layers: Number(layers), // int
-    base_material: base_materail ?? "", // string
-    thinkness: `${thickeness} (+/- 10% MM)`, // string
+    base_material: base_material ?? "", // string
+    thickness: `${thickness} (+/- 10% MM)`, // string
     finish_copper: copper_weight ?? "", // string
     surface_finish: surface_finish ?? "", // string
     process: Object.values(process).join(",") ?? "", // string

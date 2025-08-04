@@ -15,5 +15,6 @@ export interface IPanelSize{
 export interface IShipmentCost{
     shipping_type: string;
     shipping_method: string;
+    cbm: number;
     combination: boolean;
 }

@@ -12,7 +12,7 @@ const router = express.Router();
 
 router.get("/", getAllSup);
 router.get("/sup-name", getSupName );
-router.get("/all-model-name", getSupOnModel);
+router.get("/all-model-name", getSupOnModel); //not use
 
 router.post("/create", createSup);
 

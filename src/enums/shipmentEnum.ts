@@ -18,5 +18,5 @@ export enum ShippingTypeItem {
 
 export enum ShippingMethodItem {
     AIR = "Air",
-    SEA = "SEA"
+    SEA = "Sea"
 }

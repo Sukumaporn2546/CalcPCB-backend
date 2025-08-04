@@ -24,6 +24,8 @@ import {
   calcShippingAirCost,
   calcDHLCost,
   getRate,
+  calcShippingSeaCost,
+  getRateSea,
 } from "../services/shipmentCalculator";
 
 export const getAllModelPCB = async (req: Request, res: Response) => {
@@ -292,8 +294,8 @@ export const calculateCost = async (
       supplier: allData.sup_name,
     })) as IPCBinDB[];
     if (!allData.model_name || !allData.sup_name) {
-      // result = calculatePCBCostFromBasePrice({ ...allData, models });
-      result = await calculatePCBCostFromAITrainModel({ ...allData });
+      result = calculatePCBCostFromBasePrice({ ...allData, models });
+      //result = await calculatePCBCostFromAITrainModel({ ...allData });
       // console.log(result);
       // console.log("basePrice");
     } else {
@@ -413,7 +415,7 @@ export const comparePriceFromSup = async (req: Request, res: Response) => {
         spec_model: data,
       });
     }
-    console.log(results);
+    //console.log(results);
     const response: IResultCompare = {
       success: true,
       message: "Send data to compare successfully",
@@ -479,7 +481,7 @@ export const calcShipmentCost = async (req: Request, res: Response) => {
     }
     const { panel_size, shipment_cost, supplier } = data;
     const { width, height } = panel_size;
-    const { shipping_type, shipping_method } = shipment_cost;
+    const { shipping_type, shipping_method, cbm } = shipment_cost;
     const weight = calcWeight(width, height, data.cavity_up, data.quantity);
     const refPrice = getRefWeightPrice(
       weight,
@@ -491,8 +493,15 @@ export const calcShipmentCost = async (req: Request, res: Response) => {
     let shipment = 0;
     let rateChange = 0;
     if (shipping_type == "Shipping") {
-      shipment = calcShippingAirCost(weight);
-      rateChange = getRate(weight);
+      if(shipping_method == "Air"){
+        shipment = calcShippingAirCost(weight);
+        rateChange = getRate(weight);
+      }else{
+        shipment = calcShippingSeaCost(cbm);
+        console.log('SEAAAAA')
+        rateChange = getRateSea(cbm);
+      }
+      
     } else if (shipping_type == "DHL") {
       shipment = calcDHLCost(weight);
     } else {
@@ -515,6 +524,7 @@ export const calcShipmentCost = async (req: Request, res: Response) => {
       data: {
         weight,
         shipment,
+        rateChange
       },
     });
   } catch (error) {

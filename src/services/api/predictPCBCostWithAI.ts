@@ -4,7 +4,7 @@ export async function predictPCBCost(input: {
   supplier: string;
   layers: number;
   base_material: string;
-  thinkness: string;
+  thickness: string;
   finish_copper: string;
   surface_finish: string;
   process: string;

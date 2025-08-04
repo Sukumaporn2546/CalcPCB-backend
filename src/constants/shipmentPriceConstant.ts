@@ -250,5 +250,13 @@ export const SHIPMENT_REFERENCES: IShipmentPrice[] = [
         weight: 19.01,
         price: 115 * 35,
         method: ShippingMethodItem.AIR
+    },
+    {
+        supplier: SupplierItem.INTECH,
+        type: ShippingTypeItem.FEDEX,
+        unit: 'kg',
+        weight: 100,
+        price: 135 * 35,
+        method: ShippingMethodItem.AIR
     }
 ]

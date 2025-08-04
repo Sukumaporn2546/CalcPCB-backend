@@ -74,7 +74,7 @@ type RateTierSea = {
 };
 
 const rateTableSea: RateTierSea[] = [
-    { min: 0, max: 4.99, rate:0 },
+    { min: 0, max: 4.99, rate:0.10 },
     { min: 5, max: 9.99, rate:5 },
     { min: 10, max: 15, rate:10 },
 ];
@@ -87,14 +87,17 @@ export function getRateSea(cbm: number): number {
     return tier ? tier.rate : 0;
 }
 
-export const calcShippingSeaCost = (weight: number): number => {
+export const calcShippingSeaCost = (cbm: number): number => {
     const exchange_rate = 33;
-    const rateChange = getRate(weight);
-    const AIR_FREIGHT = Math.floor(rateChange * weight * exchange_rate);
-    const total_cost = Object.values(COST_ESTIMATE).reduce(
+    const TERMINAL_CHARGE =  990 ;
+    const rateChange = getRateSea(cbm);
+    const terminal_charge = TERMINAL_CHARGE*cbm;
+    const SEA_FREIGHT = Math.floor((rateChange * cbm * exchange_rate)+terminal_charge);
+    const total_cost = Object.values(COST_ESTIMATE_SEA).reduce(
         (sum, cost) => sum + cost,
-        AIR_FREIGHT
+        SEA_FREIGHT,
     );
+    console.log('cbm', cbm)
     return total_cost;
 };
 
@@ -172,7 +175,7 @@ function getFreightCharges(weight: number): number {
         if (roundedWeight <= 70) {
             return roundedWeight * 118.69;
         } else if (roundedWeight <= 300) {
-            return roundedWeight * 98.19;
+            return roundedWeight * 98.29;
         } else {
             return roundedWeight * 107.9;
         }

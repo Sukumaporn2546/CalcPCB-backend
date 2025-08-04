@@ -1,47 +1,5 @@
 // body for front to send to back
 import { Types } from 'mongoose';
-export interface CalcPCBBody {
-    model_name: string,
-    sup_name: string,
-    material: {
-
-    },
-    layers: number,
-    quantity: number,
-    pcb_size: {
-        width: number,
-        height: number,
-        unit: string
-    },
-    panel_size: {
-        width: number,
-        height: number,
-        unit: string
-    },
-    cavity_up: number,
-    thickness: string,
-    solder_mask: string,
-    legend_silk_screen: string,
-    surface_finish: string,
-    copper_weight: string
-
-    fix_cost: {
-        setup_cost: number,
-        tooling: number
-    }
-    variable_cost: {
-        fixture_charge: number,
-        express_cost: number,
-        handling: number,
-        fly_probe: number,
-        shipment_cost: {
-            shipping_type: string,
-            shipping_method: string,
-            shipping_cost: number,
-            combination: boolean,
-        }
-    }
-}
 
 export interface IPCBinDB {
     _id?: string;
@@ -105,3 +63,4 @@ export interface IPCBinDB {
         },
     },
 } 
+

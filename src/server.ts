@@ -28,7 +28,7 @@ app.use("/api/supplier", SupplierRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.listen(PORT, "172.16.16.54", () => {
+app.listen(PORT, "172.16.16.122", () => {
   connectDB();
   console.log("Server started at http://localhost:" + PORT);
 });
