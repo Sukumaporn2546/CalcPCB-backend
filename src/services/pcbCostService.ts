@@ -128,7 +128,6 @@ export function calculatePCBCost(data: ICalculateCostInput): ICost {
           break;
         default:
           price = model.cost_in2 ?? 0;
-          break;
       }
     } else {
       price = model.cost_in2 ?? 0;
@@ -156,9 +155,8 @@ export function calculatePCBCost(data: ICalculateCostInput): ICost {
     }
   }
 
-  console.log('price: ', price, areaIn2, exchange_rate);
-  const cost = calcMaterialCost(price, areaIn2, exchange_rate);  
-  console.log('costInPCBCostService', cost)                                                                   
+  //console.log('price: ', price, areaIn2, exchange_rate);
+  const cost = calcMaterialCost(price, areaIn2, exchange_rate);
   const totalCost = calcTotalMaterialCost(cost, quantity);
   const allCostPerPCB = calcAllCostPerPCB(
     fixture_charge,

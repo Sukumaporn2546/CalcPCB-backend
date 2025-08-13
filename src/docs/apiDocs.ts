@@ -486,7 +486,7 @@
  *             properties:
  *               model_name:
  *                 type: string
- *                 example: PCB COCO ELSD LN CONTROL
+ *                 example: PCB COCO ELSD LN Control
  *               sup_name:
  *                 type: string
  *                 example: Suntop
@@ -523,7 +523,7 @@
  *               material:
  *                 type: object
  *                 properties:
- *                   base_materail:
+ *                   base_material:
  *                     type: string
  *                     example: FR-4
  *                   layers:
@@ -1035,6 +1035,12 @@
  *                   shipping_method:
  *                     type: string
  *                     example: Air
+ *                   cbm:
+ *                     type: number
+ *                     example: 9
+ *                   rateOceanFreight:
+ *                     type: number
+ *                     example: 5
  *                   combination:
  *                     type: boolean
  *                     example: false

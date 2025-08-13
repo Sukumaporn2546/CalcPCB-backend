@@ -32,7 +32,7 @@ export const getAllModelPCB = async (req: Request, res: Response) => {
   try {
     const allModel = await modelPCBModel.find().sort({ createdAt: -1 });
     if (!allModel) {
-      res.status(404).json({
+      res.status(204).json({
         success: true,
         message: "ไม่พบข้อมูลโมเดลในระบบ",
       });
@@ -481,7 +481,7 @@ export const calcShipmentCost = async (req: Request, res: Response) => {
     }
     const { panel_size, shipment_cost, supplier } = data;
     const { width, height } = panel_size;
-    const { shipping_type, shipping_method, cbm } = shipment_cost;
+    const { shipping_type, shipping_method, cbm, rateOceanFreight } = shipment_cost;
     const weight = calcWeight(width, height, data.cavity_up, data.quantity);
     const refPrice = getRefWeightPrice(
       weight,
@@ -497,9 +497,8 @@ export const calcShipmentCost = async (req: Request, res: Response) => {
         shipment = calcShippingAirCost(weight);
         rateChange = getRate(weight);
       }else{
-        shipment = calcShippingSeaCost(cbm);
-        console.log('SEAAAAA')
-        rateChange = getRateSea(cbm);
+        shipment = calcShippingSeaCost(cbm, rateOceanFreight);
+        //rateChange = getRateSea(cbm);
       }
       
     } else if (shipping_type == "DHL") {
@@ -508,15 +507,15 @@ export const calcShipmentCost = async (req: Request, res: Response) => {
       shipment = calcEstimateShipmentCost(weight, refPrice, supplier);
     }
 
-    console.log("refPrice", refPrice);
     console.log(
       "Argument for find refPrice: ",
       shipping_type,
       shipping_method,
       supplier
     );
+    console.log("refPrice", refPrice);
     console.log("shipment", shipment);
-    console.log("rateChange", rateChange);
+    //console.log("rateChange", rateChange);
     //const shipmentCost = calcEstimateShipmentCost(weight, refPrice, supplier);
     res.status(200).json({
       success: true,
@@ -524,7 +523,7 @@ export const calcShipmentCost = async (req: Request, res: Response) => {
       data: {
         weight,
         shipment,
-        rateChange
+        rateOceanFreight
       },
     });
   } catch (error) {

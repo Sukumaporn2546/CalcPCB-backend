@@ -87,10 +87,11 @@ export function getRateSea(cbm: number): number {
     return tier ? tier.rate : 0;
 }
 
-export const calcShippingSeaCost = (cbm: number): number => {
+export const calcShippingSeaCost = (cbm: number, rate: number): number => {
     const exchange_rate = 33;
     const TERMINAL_CHARGE =  990 ;
-    const rateChange = getRateSea(cbm);
+    //const rateChange = getRateSea(cbm);
+    const rateChange = rate;
     const terminal_charge = TERMINAL_CHARGE*cbm;
     const SEA_FREIGHT = Math.floor((rateChange * cbm * exchange_rate)+terminal_charge);
     const total_cost = Object.values(COST_ESTIMATE_SEA).reduce(

@@ -16,5 +16,6 @@ export interface IShipmentCost{
     shipping_type: string;
     shipping_method: string;
     cbm: number;
+    rateOceanFreight: number;
     combination: boolean;
 }

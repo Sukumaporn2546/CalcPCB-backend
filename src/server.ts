@@ -16,7 +16,9 @@ const app = express();
 const PORT = 3000;
 app.use(
   cors({
-    origin: "http://172.16.16.54:5173", // IP/Domain ของ frontend
+    origin: (origin, callback) => {
+      callback(null, true); // อนุญาตทุก origin ชั่วคราว
+    },
     credentials: true,
   })
 );
@@ -28,7 +30,7 @@ app.use("/api/supplier", SupplierRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.listen(PORT, "172.16.16.122", () => {
+app.listen(PORT, "0.0.0.0", () => {
   connectDB();
   console.log("Server started at http://localhost:" + PORT);
 });
