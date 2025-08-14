@@ -19,7 +19,6 @@ function calCulateAdminFee(data: CalculatePriceInput) {
 }
 
 
-
 export function calculatePCBPrice(data: CalculatePriceInput) {
     const { cost_per_piece, margin_percent, quantity, all_total_cost } = data
     const admin_fee = calCulateAdminFee(data);
