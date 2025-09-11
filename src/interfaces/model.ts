@@ -60,7 +60,10 @@ export interface IPCBinDB {
             shipping_method: string,
             shipping_cost: number,
             combine: boolean,
+            forwarder: string
         },
     },
+    exchange_rate: number,
+    currency: string
 } 
 

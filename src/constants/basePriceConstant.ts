@@ -99,6 +99,12 @@ export const PCB_COST_REFERENCES: PriceReference[] = [
     // Copper Weight
     {
         category: Category.COPPER_WEIGHT,
+        item: CopperWeightItem.HALF_OZ,
+        unit: "USD/in²",
+        averagePrice: 3.25 / 1550,
+    },
+    {
+        category: Category.COPPER_WEIGHT,
         item: CopperWeightItem.ONE_OZ,
         unit: "USD/in²",
         averagePrice: 6.5 / 1550,
@@ -121,6 +127,18 @@ export const PCB_COST_REFERENCES: PriceReference[] = [
         unit: "USD/in²",
         averagePrice: 26 / 1550,
     },
+    {
+        category: Category.COPPER_WEIGHT,
+        item: CopperWeightItem.FIVE_OZ,
+        unit: "USD/in²",
+        averagePrice: 32.5 / 1550,
+    },
+    {
+        category: Category.COPPER_WEIGHT,
+        item: CopperWeightItem.SIX_OZ,
+        unit: "USD/in²",
+        averagePrice: 39 / 1550,
+    },
 
     // Surface Finish
     {
@@ -139,7 +157,7 @@ export const PCB_COST_REFERENCES: PriceReference[] = [
         category: Category.SURFACE_FINISH,
         item: SurfaceFinishItem.ENIG,
         unit: "USD/in²",
-        averagePrice: 140 / 1550,
+        averagePrice:  50/ 1550, //140
     },
 
     // Solder Mask

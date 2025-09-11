@@ -60,8 +60,11 @@ const PCBSchema: Schema = new Schema({
             shipping_method: { type: String },
             shipping_cost: { type: Number },
             combine: { type: Boolean },
+            forwarder: {type: String}
         },
     },
+    exchange_rate: {type: Number},
+    currency:{ type: String}
 } , { timestamps: true, strict: false });
 
 // Create and export model

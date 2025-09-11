@@ -6,6 +6,7 @@ import {
   calculatePCBCost,
   calculatePCBCostFromAITrainModel,
   calculatePCBCostFromBasePrice,
+  calculatePCBCostFromUser,
 } from "../services/pcbCostService";
 import { calculatePCBPrice } from "../services/pcbPriceService";
 import { IPCBinDB } from "../interfaces/model";
@@ -27,7 +28,9 @@ import {
   calcShippingSeaCost,
   getRateSea,
 } from "../services/shipmentCalculator";
-
+import {
+  calcCostFromSupAndAdmin
+} from "../\/services/costCalculatorUtil"
 export const getAllModelPCB = async (req: Request, res: Response) => {
   try {
     const allModel = await modelPCBModel.find().sort({ createdAt: -1 });
@@ -255,9 +258,10 @@ export const getModelPCB = async (
       legend_silk_screen,
       quantity,
       process,
+      currency
     } = pcb;
 
-    res.json({
+    res.status(200).json({
       model_name,
       supplier,
       material,
@@ -270,6 +274,7 @@ export const getModelPCB = async (
       process,
       fix_cost,
       variable_cost,
+      currency
     });
   } catch (error) {
     console.error("Error fetching PCB:", error);
@@ -287,20 +292,20 @@ export const calculateCost = async (
       res.status(400).json({ message: "Missing model PCB data!" });
       return;
     }
-
+    //console.log("allData", allData);
     let result: any = 0;
     const models = (await PCBModel.find({
       model_name: allData.model_name,
       supplier: allData.sup_name,
     })) as IPCBinDB[];
-    if (!allData.model_name || !allData.sup_name) {
+
+    if (models.length == 0) {
+      console.log("---basePrice---");
       result = calculatePCBCostFromBasePrice({ ...allData, models });
       //result = await calculatePCBCostFromAITrainModel({ ...allData });
-      // console.log(result);
-      // console.log("basePrice");
     } else {
+      console.log("---InDB---");
       result = calculatePCBCost({ ...allData, models });
-      console.log("InDB");
     }
 
     res.status(200).json({
@@ -364,21 +369,21 @@ export const comparePriceFromSup = async (req: Request, res: Response) => {
     }
     const { data } = allData;
 
-    if (data.model_name === "") {
-      const results: IResultCompareArray[] = await comparePriceFromAIpredict(
-        allData
-      );
-      const response: IResultCompare = {
-        success: true,
-        message: "Send data to compare successfully",
-        model_name: allData.data.model_name,
-        results: results.map((r) => ({ ...r, spec_model: allData.data })),
-      };
+    // if (data.model_name === "") {
+    //   const results: IResultCompareArray[] = await comparePriceFromAIpredict(
+    //     allData
+    //   );
+    //   const response: IResultCompare = {
+    //     success: true,
+    //     message: "Send data to compare successfully",
+    //     model_name: allData.data.model_name,
+    //     results: results.map((r) => ({ ...r, spec_model: allData.data })),
+    //   };
 
-      res.status(200).json(formatResultCompareRes(response));
+    //   res.status(200).json(formatResultCompareRes(response));
 
-      return;
-    }
+    //   return;
+    // }
     const modelRecords = await PCBModel.find({ model_name: data.model_name });
     if (modelRecords.length === 0) {
       res.status(404).json({
@@ -404,6 +409,7 @@ export const comparePriceFromSup = async (req: Request, res: Response) => {
         quantity: allData.data.quantity ?? 0,
         all_total_cost: calculatedCost.all_total_cost ?? 0,
         area_in2_per_pcb: allData.area_in2_per_pcb ?? 0,
+        admin_cost_percent: allData.admin_cost_percent ?? 0
       };
       const calculatedPrice = calculatePCBPrice(input);
       results.push({
@@ -431,46 +437,47 @@ export const comparePriceFromSup = async (req: Request, res: Response) => {
       .json({ message: "Failed to get data of compare price from sup", error });
   }
 };
-export const comparePriceFromAIpredict = async (
-  data: any
-): Promise<IResultCompareArray[]> => {
-  try {
-    const suppliers = await SupplierModel.find();
-    const results: IResultCompareArray[] = [];
-    console.log("data", data);
-    for (const supplier of suppliers) {
-      // Prepare input for cost calculation
-      const costInput = {
-        ...data?.data,
-        sup_name: supplier.sup_name,
-      };
-      const calculatedCost = await calculatePCBCostFromAITrainModel(costInput);
+// export const comparePriceFromAIpredict = async (
+//   data: any
+// ): Promise<IResultCompareArray[]> => {
+//   try {
+//     const suppliers = await SupplierModel.find();
+//     const results: IResultCompareArray[] = [];
+//     console.log("data", data);
+//     for (const supplier of suppliers) {
+//       // Prepare input for cost calculation
+//       const costInput = {
+//         ...data?.data,
+//         sup_name: supplier.sup_name,
+//       };
+//       const calculatedCost = await calculatePCBCostFromAITrainModel(costInput);
 
-      const priceInput = {
-        cost_per_piece: calculatedCost.all_cost_per_pcb ?? 0,
-        margin_percent: data.margin_percent ?? 0,
-        quantity: data.data.quantity ?? 0,
-        all_total_cost: calculatedCost.all_total_cost ?? 0,
-        area_in2_per_pcb: calculatedCost.area_in2_per_pcb ?? 0,
-      };
-      const calculatedPrice = calculatePCBPrice(priceInput);
+//       const priceInput = {
+//         cost_per_piece: calculatedCost.all_cost_per_pcb ?? 0,
+//         margin_percent: data.margin_percent ?? 0,
+//         quantity: data.data.quantity ?? 0,
+//         all_total_cost: calculatedCost.all_total_cost ?? 0,
+//         area_in2_per_pcb: calculatedCost.area_in2_per_pcb ?? 0,
+//         admin_cost_percent: data.admin_cost_percent
+//       };
+//       const calculatedPrice = calculatePCBPrice(priceInput);
 
-      results.push({
-        supplier: supplier.sup_name as string,
-        model_name: (data.model_name as string) ?? "",
-        margin_percent: data.margin_percent ?? 0,
-        cost: calculatedCost,
-        price: calculatedPrice,
-        spec_model: data.data,
-      });
-    }
+//       results.push({
+//         supplier: supplier.sup_name as string,
+//         model_name: (data.model_name as string) ?? "",
+//         margin_percent: data.margin_percent ?? 0,
+//         cost: calculatedCost,
+//         price: calculatedPrice,
+//         spec_model: data.data,
+//       });
+//     }
 
-    return results;
-  } catch (error) {
-    console.log(error);
-    return [];
-  }
-};
+//     return results;
+//   } catch (error) {
+//     console.log(error);
+//     return [];
+//   }
+// };
 
 export const calcShipmentCost = async (req: Request, res: Response) => {
   try {
@@ -481,7 +488,7 @@ export const calcShipmentCost = async (req: Request, res: Response) => {
     }
     const { panel_size, shipment_cost, supplier } = data;
     const { width, height } = panel_size;
-    const { shipping_type, shipping_method, cbm, rateOceanFreight } = shipment_cost;
+    const { shipping_type, shipping_method, cbm, rateOceanFreight, shipping_cost } = shipment_cost;
     const weight = calcWeight(width, height, data.cavity_up, data.quantity);
     const refPrice = getRefWeightPrice(
       weight,
@@ -491,20 +498,29 @@ export const calcShipmentCost = async (req: Request, res: Response) => {
     );
 
     let shipment = 0;
-    let rateChange = 0;
+    if (!shipping_cost) {
+      //สำหรับคำนวณครั้งแรก
+    }
+
     if (shipping_type == "Shipping") {
-      if(shipping_method == "Air"){
-        shipment = calcShippingAirCost(weight);
-        rateChange = getRate(weight);
-      }else{
+      if (shipping_method == "Air") {
+        shipment = calcShippingAirCost(weight, 5, data.exchange_rate);
+      } else {
         shipment = calcShippingSeaCost(cbm, rateOceanFreight);
-        //rateChange = getRateSea(cbm);
       }
-      
+
     } else if (shipping_type == "DHL") {
       shipment = calcDHLCost(weight);
-    } else {
-      shipment = calcEstimateShipmentCost(weight, refPrice, supplier);
+    } else if (shipping_type === "FedEx") { //exactly I have to check weight < 100 kg but I think P'Oom will not use this for > 100 kg
+      //shipment = calcEstimateShipmentCost(weight, refPrice, supplier);
+      shipment = calcShippingAirCost(weight, 5, data.exchange_rate);
+    }
+    console.log('shipment before', shipment)
+    switch (data.currency) {
+      case "usd":
+        Math.round(shipment /= data.exchange_rate);
+      case "baht":
+        shipment = Math.round(shipment);
     }
 
     console.log(
@@ -530,3 +546,66 @@ export const calcShipmentCost = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const calcCostFromAdmin = async (req: Request, res: Response) => {
+  try {
+    const data = req.body;
+    if (!data) {
+      res.status(400).json({ message: "Missing data" })
+    }
+    //const admin_percent_of_cost_per_piece = parseFloat(((data.admin_fee_per_pcb / data.cost_inspec_per_piece) * 100).toFixed(2));
+    const realCost = calcCostFromSupAndAdmin(
+      data.cost_inspec_per_piece ?? 0,
+      data.total_cost_inspec,
+      data.admin_fee_per_pcb,
+      data.total_admin_fee,
+      data.quantity,
+      data.admin_cost_percent ?? 0
+    );
+    res.status(200).json({
+      success: true,
+      message: "send cost successfully",
+      data: {
+        realCost,
+        //admin_percent_of_cost_per_piece
+      }
+    })
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" })
+  }
+}
+
+export const calcCostBahtPerPcs = async (req: Request, res: Response) => {
+  try {
+    const data = req.body;
+    //   "variable_cost": {
+    //   "fixture_charge": 0,
+    //   "express_cost": 0,
+    //   "handling": 0,
+    //   "fly_probe": 0,
+    //   "shipment_cost": {
+    //     "shipping_type": "Shipping",
+    //     "shipping_method": "Air",
+    //     "shipping_cost": 884,
+    //     "combination": true,
+    //     "forwarder": "IamForwarder"
+    //   }
+    // },
+    //   "quantity": 5000,
+    //  "cost_usd": 10,   //ค่าที่จะเปลี่ยน
+    //  "area_in2_per_pcb":24.6
+
+    if (!data) {
+      res.status(400).json({ success: false, message: "Missing data" });
+      return;
+    }
+    const result = calculatePCBCostFromUser(data);
+    res.status(200).json({
+      message: "calculate cost pcb",
+      data: result,
+    })
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Failed to get cost", error });
+  }
+}

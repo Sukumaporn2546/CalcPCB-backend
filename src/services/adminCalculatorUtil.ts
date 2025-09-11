@@ -31,3 +31,9 @@ export function calcCostAdminFee(timeAQL: number, sample_size: number): {admin_f
     const admin_fee_per_pcb = total_admin_fee/sample_size;
     return {total_admin_fee, admin_fee_per_pcb, sample_size};
 }
+
+export function calcCostOfInspec (totalCost: number, total_admin_fee: number, quantity: number){
+    const total_cost_inspec = totalCost+total_admin_fee;
+    const cost_inspec_per_piece = total_cost_inspec/quantity;
+    return {total_cost_inspec, cost_inspec_per_piece}
+}

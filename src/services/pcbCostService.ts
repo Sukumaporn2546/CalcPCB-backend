@@ -16,7 +16,7 @@ import {
   calcCostAdminFee,
 } from "./adminCalculatorUtil";
 import { PCB_COST_REFERENCES } from "../constants/basePriceConstant";
-import { calcCostFromSupAndAdmin } from "./costCalculatorUtil";
+import { calcCostFromSupAndAdmin, calcCostPerPieceToBaht, calcMaterialCostBaht, calcTotalBoardArea, calcBoardAreaPerPieceM2, calcTotalBoardAreaM2, findRankPriceSupplier } from "./costCalculatorUtil";
 import {
   calcBoardArea,
   calcMaterialCost,
@@ -26,7 +26,7 @@ import {
   calcWeight,
 } from "./costCalculatorUtil";
 import { predictPCBCost } from "./api/predictPCBCostWithAI";
-
+import { calcCostOfInspec } from "./adminCalculatorUtil";
 interface ICalculateCostInput {
   panel_size: { width: number; height: number };
   pcb_size: { width: number; height: number };
@@ -42,10 +42,13 @@ interface ICalculateCostInput {
     express_cost: number;
     handling: number;
     fly_probe: number;
-    shipment_cost: { shipping_cost: number };
+    shipment_cost: { shipping_cost: number, forwarder: string };
   };
   models: IPCBinDB[];
   exchange_rate: number;
+  currency: string;
+  admin_cost_percent: number;
+  cost_per_pcb: number;
 }
 export interface ICalculateCostBasePriceInput {
   panel_size: { width: number; height: number };
@@ -74,10 +77,12 @@ export interface ICalculateCostBasePriceInput {
     express_cost: number;
     handling: number;
     fly_probe: number;
-    shipment_cost: { shipping_cost: number };
+    shipment_cost: { shipping_cost: number, forwarder: string };
   };
   exchange_rate: number;
   sup_name?: string;
+  currency: string;
+  admin_cost_percent: number;
 }
 
 export function calculatePCBCost(data: ICalculateCostInput): ICost {
@@ -96,9 +101,9 @@ export function calculatePCBCost(data: ICalculateCostInput): ICost {
 
   const { width: width_panel, height: height_panel } = panel_size;
   const { copper_weight } = material;
-  const { setup_cost, tooling } = fix_cost;
-  const { fixture_charge, express_cost, handling, fly_probe, shipment_cost } =
-    variable_cost;
+  // const { setup_cost, tooling } = fix_cost;
+  // const { fixture_charge, express_cost, handling, fly_probe, shipment_cost } =
+  //   variable_cost;
 
   const areaIn2 = calcBoardArea(width_panel, height_panel, cavity_up);
 
@@ -154,51 +159,81 @@ export function calculatePCBCost(data: ICalculateCostInput): ICost {
           : selected?.cost_in2_many?.q3000 ?? 0;
     }
   }
-
+  switch (data.currency) {
+    case "usd":
+      fix_cost.setup_cost *= exchange_rate;
+      fix_cost.tooling *= exchange_rate;
+      variable_cost.express_cost *= exchange_rate;
+      variable_cost.fixture_charge *= exchange_rate;
+      variable_cost.fly_probe *= exchange_rate;
+      variable_cost.handling *= exchange_rate;
+      variable_cost.shipment_cost.shipping_cost *= exchange_rate;
+  }
+  
+  const costBaht = calcCostPerPieceToBaht(data.exchange_rate, price);
   //console.log('price: ', price, areaIn2, exchange_rate);
-  const cost = calcMaterialCost(price, areaIn2, exchange_rate);
+  const cost = calcMaterialCost(costBaht, areaIn2, 1);
   const totalCost = calcTotalMaterialCost(cost, quantity);
+  
+
   const allCostPerPCB = calcAllCostPerPCB(
-    fixture_charge,
-    express_cost,
-    handling,
-    fly_probe,
-    shipment_cost.shipping_cost,
-    setup_cost,
-    tooling,
+    variable_cost.fixture_charge,
+    variable_cost.express_cost,
+    variable_cost.handling,
+    variable_cost.fly_probe,
+    variable_cost.shipment_cost.shipping_cost,
+    fix_cost.setup_cost,
+    fix_cost.tooling,
     totalCost,
     quantity
   );
+  
+  //console.log('all cost per pcb', totalCost, tooling, shipment_cost.shipping_cost)
+
   const allTotalCost = calcAllTotalCost(
-    fixture_charge,
-    express_cost,
-    handling,
-    fly_probe,
-    shipment_cost.shipping_cost,
-    setup_cost,
-    tooling,
+  variable_cost.fixture_charge,
+    variable_cost.express_cost,
+    variable_cost.handling,
+    variable_cost.fly_probe,
+    variable_cost.shipment_cost.shipping_cost,
+    fix_cost.setup_cost,
+    fix_cost.tooling,
     totalCost
   );
   const weight = calcWeight(width_panel, height_panel, cavity_up, quantity);
-  const shipmentPerPCB = shipment_cost.shipping_cost / quantity;
+  const shipmentPerPCB = variable_cost.shipment_cost.shipping_cost / quantity;
 
   const sampleSize = findSampleSize(quantity);
   const timePerSize = findTimePerSize(areaIn2);
   const timeAQL = calcTimeAQL(sampleSize, timePerSize);
 
   const admin_fee = calcCostAdminFee(timeAQL, sampleSize);
-  const realCost = calcCostFromSupAndAdmin(
-    allCostPerPCB,
-    allTotalCost,
-    admin_fee.admin_fee_per_pcb,
-    admin_fee.total_admin_fee,
-    quantity
-  );
+  // const realCost = calcCostFromSupAndAdmin(
+  //   allCostPerPCB,
+  //   allTotalCost,
+  //   admin_fee.admin_fee_per_pcb,
+  //   admin_fee.total_admin_fee,
+  //   quantity,
+  //   data.admin_cost_percent ?? 0
+  // );
+  const admin_percent_of_cost_per_piece = parseFloat(((admin_fee.admin_fee_per_pcb / allCostPerPCB) * 100).toFixed(2))
+  //const {total_percent_admin_fee, real_cost_per_pcb, total_cost_pcb} = convertAdminFeePerCentToAmount(allCostPerPCB, admin_percent_of_cost_per_piece, data.admin_cost_percent, quantity)
+  const { total_cost_inspec, cost_inspec_per_piece } = calcCostOfInspec(allTotalCost, admin_fee.total_admin_fee, quantity);
 
+
+  const areaAllIn2 = calcTotalBoardArea(width_panel, height_panel, cavity_up, quantity);
+  const areaM2 = calcBoardAreaPerPieceM2(width_panel, height_panel, cavity_up);
+  const areaAllM2 = calcTotalBoardAreaM2(width_panel, height_panel, cavity_up, quantity);
+
+  const rankSup = findRankPriceSupplier(areaAllM2);
   return {
-    cost_usd: price,
+    cost_usd: costBaht,
     cost_per_pcb: cost,
     area_in2_per_pcb: Number(areaIn2.toFixed(2)),
+    area_all_in2: Number(areaAllIn2.toFixed(2)),
+    area_m2_per_pcb: areaM2,
+    area_all_m2: areaAllM2,
+    rank_sup: rankSup,
     total_cost: totalCost,
     all_cost_per_pcb: allCostPerPCB,
     all_total_cost: allTotalCost,
@@ -207,9 +242,22 @@ export function calculatePCBCost(data: ICalculateCostInput): ICost {
     variable_cost,
     quantity,
     shipment_per_pcb: shipmentPerPCB,
-    admin_fee_cost: admin_fee,
-    real_cost: realCost,
+    //forwarder: forwarder,
+    admin_fee_cost: {
+      total_admin_fee: admin_fee.total_admin_fee,
+      admin_fee_per_pcb: admin_fee.admin_fee_per_pcb,
+      sample_size: admin_fee.sample_size,
+      admin_percent_of_cost_per_piece: admin_percent_of_cost_per_piece,
+      cost_inspec_per_piece: cost_inspec_per_piece,
+      total_cost_inspec: total_cost_inspec
+    },
+    // real_cost: realCost,
+    real_cost: {
+      cost_per_pcb: 0,
+      total_cost_pcb: 0
+    },
     exchange_rate: exchange_rate,
+    model_name: model_name
   };
 }
 
@@ -227,14 +275,10 @@ export function calculatePCBCostFromBasePrice(
     legend_silk_screen,
     process,
     exchange_rate,
+    model_name
   } = data;
 
   const { width: width_panel, height: height_panel } = panel_size;
-  const { setup_cost, tooling } = fix_cost;
-  const { fixture_charge, express_cost, handling, fly_probe, shipment_cost } =
-    variable_cost;
-
-  const areaIn2 = calcBoardArea(width_panel, height_panel, cavity_up);
 
   // Helper function: ดึงราคาจาก constant ตามหมวดหมู่ + รายการ
   function getAveragePrice(category: Category, item: string): number {
@@ -283,28 +327,20 @@ export function calculatePCBCostFromBasePrice(
     });
   }
 
-  // const CNCPrice = getAveragePrice(Category.PROCESS, process.CNC_Routing);
-  // const vCutPrice = getAveragePrice(Category.PROCESS, process.V_Cut);
-  // const noXOutPrice = getAveragePrice(Category.PROCESS, process.No_X_Out);
-  // const eTestPrice = getAveragePrice(Category.PROCESS, process.E_Test);
-  // console.log("📦 Base Material Price:", baseMaterialPrice);
-  // console.log("📄 Layer Price:", layerPrice);
-  // console.log("⚖️ Copper Weight Price:", copperWeightPrice);
-  // console.log("✨ Surface Finish Price:", surfaceFinishPrice);
-  // console.log("🟢 Solder Mask Price:", solderMaskPrice);
-  // console.log("🔤 Silkscreen Price:", silkscreenPrice);
-  // console.log("📏 Thickness Price:", thicknessPrice);
-  // console.log("🛠️ CNC Routing Price:", CNCPrice);
-  // console.log("✂️ V-Cut Price:", VCutPrice);
-  // console.log("❌ No X-Out Price:", NoXOutPrice);
-  // console.log("🔍 E-Test Price:", ETestPrice);
-  // console.log('------------------------')
-  // console.log('cnc', process.CNC_Routing);
-  // console.log('noXOut', process.No_X_Out);
-  // console.log("🔧 CNC Routing Item:", process.CNC_Routing);
-  // console.log("🔍 Comparing with:", Category.PROCESS, process.CNC_Routing);
 
+  //console.log('data', data);
   console.log("proPrice", processPrices);
+
+  switch (data.currency) {
+    case "usd":
+      fix_cost.setup_cost *= exchange_rate;
+      fix_cost.tooling *= exchange_rate;
+      variable_cost.express_cost *= exchange_rate;
+      variable_cost.fixture_charge *= exchange_rate;
+      variable_cost.fly_probe *= exchange_rate;
+      variable_cost.handling *= exchange_rate;
+      variable_cost.shipment_cost.shipping_cost *= exchange_rate;
+  }
 
   const totalPricePerSqInch =
     baseMaterialPrice +
@@ -316,49 +352,67 @@ export function calculatePCBCostFromBasePrice(
     thicknessPrice +
     processPrices;
 
-  const cost = calcMaterialCost(totalPricePerSqInch, areaIn2, exchange_rate);
+  const costBaht = calcCostPerPieceToBaht(data.exchange_rate, totalPricePerSqInch);
+  const areaIn2 = calcBoardArea(width_panel, height_panel, cavity_up);
+  const cost = calcMaterialCost(costBaht, areaIn2, 1);
   const totalCost = calcTotalMaterialCost(cost, quantity);
   const allCostPerPCB = calcAllCostPerPCB(
-    fixture_charge,
-    express_cost,
-    handling,
-    fly_probe,
-    shipment_cost.shipping_cost,
-    setup_cost,
-    tooling,
+    variable_cost.fixture_charge,
+    variable_cost.express_cost,
+    variable_cost.handling,
+    variable_cost.fly_probe,
+    variable_cost.shipment_cost.shipping_cost,
+    fix_cost.setup_cost,
+    fix_cost.tooling,
     totalCost,
     quantity
   );
+  
+
   const allTotalCost = calcAllTotalCost(
-    fixture_charge,
-    express_cost,
-    handling,
-    fly_probe,
-    shipment_cost.shipping_cost,
-    setup_cost,
-    tooling,
+    variable_cost.fixture_charge,
+    variable_cost.express_cost,
+    variable_cost.handling,
+    variable_cost.fly_probe,
+    variable_cost.shipment_cost.shipping_cost,
+    fix_cost.setup_cost,
+    fix_cost.tooling,
     totalCost
   );
   const weight = calcWeight(width_panel, height_panel, cavity_up, quantity);
-  const shipmentPerPCB = shipment_cost.shipping_cost / quantity;
+  const shipmentPerPCB = variable_cost.shipment_cost.shipping_cost / quantity;
 
   const sampleSize = findSampleSize(quantity);
   const timePerSize = findTimePerSize(areaIn2);
   const timeAQL = calcTimeAQL(sampleSize, timePerSize);
 
   const admin_fee = calcCostAdminFee(timeAQL, sampleSize);
+  const admin_percent_of_cost_per_piece = parseFloat(((admin_fee.admin_fee_per_pcb / allCostPerPCB) * 100).toFixed(2));
+  const { total_cost_inspec, cost_inspec_per_piece } = calcCostOfInspec(allTotalCost, admin_fee.total_admin_fee, quantity);
+
   const realCost = calcCostFromSupAndAdmin(
-    allCostPerPCB,
-    allTotalCost,
+    cost_inspec_per_piece,
+    total_cost_inspec,
     admin_fee.admin_fee_per_pcb,
     admin_fee.total_admin_fee,
-    quantity
+    quantity,
+    data.admin_cost_percent ?? 0
   );
 
+  const areaAllIn2 = calcTotalBoardArea(width_panel, height_panel, cavity_up, quantity);
+  const areaM2 = calcBoardAreaPerPieceM2(width_panel, height_panel, cavity_up);
+  const areaAllM2 = calcTotalBoardAreaM2(width_panel, height_panel, cavity_up, quantity);
+
+  const rankSup = findRankPriceSupplier(areaAllM2)
   return {
-    cost_usd: totalPricePerSqInch,
+    // cost_usd: totalPricePerSqInch,
+    cost_usd: costBaht,
     cost_per_pcb: cost,
     area_in2_per_pcb: Number(areaIn2.toFixed(2)),
+    area_all_in2: Number(areaAllIn2.toFixed(2)),
+    area_m2_per_pcb: areaM2,
+    area_all_m2: areaAllM2,
+    rank_sup: rankSup,
     total_cost: totalCost,
     all_cost_per_pcb: allCostPerPCB,
     all_total_cost: allTotalCost,
@@ -367,11 +421,27 @@ export function calculatePCBCostFromBasePrice(
     variable_cost,
     quantity,
     shipment_per_pcb: shipmentPerPCB,
-    admin_fee_cost: admin_fee,
-    real_cost: realCost,
+    //forwarder: shipment_cost.forwarder,
+    admin_fee_cost: {
+      total_admin_fee: admin_fee.total_admin_fee,
+      admin_fee_per_pcb: admin_fee.admin_fee_per_pcb,
+      sample_size: admin_fee.sample_size,
+      admin_percent_of_cost_per_piece: admin_percent_of_cost_per_piece,
+      cost_inspec_per_piece: cost_inspec_per_piece,
+      total_cost_inspec: total_cost_inspec
+
+      //total_percent_admin_fee: total_percent_admin_fee
+    },
+    // real_cost: realCost,
+    real_cost: {
+      cost_per_pcb: 0,
+      total_cost_pcb: 0
+    },
     exchange_rate: exchange_rate,
+    model_name: model_name
   };
 }
+
 export async function calculatePCBCostFromAITrainModel(
   data: ICalculateCostBasePriceInput
 ) {
@@ -416,10 +486,23 @@ export async function calculatePCBCostFromAITrainModel(
     solder_mask: solder_mask ?? "", // string
     pcb_quantity: Number(quantity), // int
   };
-
-  const aiPredictedCost = await predictPCBCost(aiInput); // ← float USD ต่อแผ่น
+  //console.log('aiInput', aiInput)
+  let aiPredictedCost = await predictPCBCost(aiInput); // ← float USD ต่อแผ่น
+  const cost_in2 = aiPredictedCost / areaIn2;
   console.log("aiPredictedCOst: ", aiPredictedCost);
-  const cost = Number((aiPredictedCost * exchange_rate).toFixed(4)); // แปลงเป็นบาท
+  switch (data.currency) {
+    case "usd":
+      fix_cost.setup_cost *= exchange_rate;
+      fix_cost.tooling *= exchange_rate;
+      variable_cost.express_cost *= exchange_rate;
+      variable_cost.fixture_charge *= exchange_rate;
+      variable_cost.fly_probe *= exchange_rate;
+      variable_cost.handling *= exchange_rate;
+      variable_cost.shipment_cost.shipping_cost *= exchange_rate;
+  }
+
+  //const cost = Number((aiPredictedCost * exchange_rate).toFixed(4)); // แปลงเป็นบาท
+  const cost = calcMaterialCost(cost_in2, areaIn2, exchange_rate);
   const totalCost = calcTotalMaterialCost(cost, quantity);
 
   const allCostPerPCB = calcAllCostPerPCB(
@@ -458,8 +541,12 @@ export async function calculatePCBCostFromAITrainModel(
     allTotalCost,
     admin_fee.admin_fee_per_pcb,
     admin_fee.total_admin_fee,
-    quantity
+    quantity,
+    data.admin_cost_percent ?? 0
   );
+
+  const admin_percent_of_cost_per_piece = parseFloat(((admin_fee.admin_fee_per_pcb / allCostPerPCB) * 100).toFixed(2));
+  const { total_cost_inspec, cost_inspec_per_piece } = calcCostOfInspec(allTotalCost, admin_fee.total_admin_fee, quantity);
 
   return {
     cost_usd: aiPredictedCost,
@@ -473,8 +560,147 @@ export async function calculatePCBCostFromAITrainModel(
     variable_cost,
     quantity,
     shipment_per_pcb: shipmentPerPCB,
-    admin_fee_cost: admin_fee,
-    real_cost: realCost,
+    admin_fee_cost: {
+      total_admin_fee: admin_fee.total_admin_fee,
+      admin_fee_per_pcb: admin_fee.admin_fee_per_pcb,
+      sample_size: admin_fee.sample_size,
+      admin_percent_of_cost_per_piece: admin_percent_of_cost_per_piece,
+      cost_inspec_per_piece: cost_inspec_per_piece,
+      total_cost_inspec: total_cost_inspec
+    },
+    //real_cost: realCost,
+    real_cost: {
+      cost_per_pcb: 0,
+      total_cost_pcb: 0
+    },
     exchange_rate: exchange_rate,
+  };
+}
+
+export function calculatePCBCostFromUser(data: ICalculateCostInput): ICost {
+  const {
+    panel_size,
+    quantity,
+    cavity_up,
+    pcb_size,
+    model_name,
+    material,
+    fix_cost,
+    variable_cost,
+    models,
+    exchange_rate,
+    cost_per_pcb
+  } = data;
+
+  const { width: width_panel, height: height_panel } = panel_size;
+  const { copper_weight } = material;
+  // const { setup_cost, tooling } = fix_cost;
+  // const { fixture_charge, express_cost, handling, fly_probe, shipment_cost } =
+  //   variable_cost;
+
+  const areaIn2 = calcBoardArea(width_panel, height_panel, cavity_up);
+
+  
+  switch (data.currency) {
+    case "usd":
+      fix_cost.setup_cost *= exchange_rate;
+      fix_cost.tooling *= exchange_rate;
+      variable_cost.express_cost *= exchange_rate;
+      variable_cost.fixture_charge *= exchange_rate;
+      variable_cost.fly_probe *= exchange_rate;
+      variable_cost.handling *= exchange_rate;
+      variable_cost.shipment_cost.shipping_cost *= exchange_rate;
+  }
+  
+  //const costBaht = calcCostPerPieceToBaht(data.exchange_rate, cost_usd);
+  //console.log('price: ', price, areaIn2, exchange_rate);
+  //const cost = calcMaterialCost(cost_usd, areaIn2, 1);
+  const cost = cost_per_pcb;
+  const totalCost = calcTotalMaterialCost(cost, quantity);
+  
+  console.log('cost', cost)
+
+  const allCostPerPCB = calcAllCostPerPCB(
+    variable_cost.fixture_charge,
+    variable_cost.express_cost,
+    variable_cost.handling,
+    variable_cost.fly_probe,
+    variable_cost.shipment_cost.shipping_cost,
+    fix_cost.setup_cost,
+    fix_cost.tooling,
+    totalCost,
+    quantity
+  );
+  
+  //console.log('all cost per pcb', totalCost, tooling, shipment_cost.shipping_cost)
+
+  const allTotalCost = calcAllTotalCost(
+  variable_cost.fixture_charge,
+    variable_cost.express_cost,
+    variable_cost.handling,
+    variable_cost.fly_probe,
+    variable_cost.shipment_cost.shipping_cost,
+    fix_cost.setup_cost,
+    fix_cost.tooling,
+    totalCost
+  );
+  const weight = calcWeight(width_panel, height_panel, cavity_up, quantity);
+  const shipmentPerPCB = variable_cost.shipment_cost.shipping_cost / quantity;
+
+  const sampleSize = findSampleSize(quantity);
+  const timePerSize = findTimePerSize(areaIn2);
+  const timeAQL = calcTimeAQL(sampleSize, timePerSize);
+
+  const admin_fee = calcCostAdminFee(timeAQL, sampleSize);
+  // const realCost = calcCostFromSupAndAdmin(
+  //   allCostPerPCB,
+  //   allTotalCost,
+  //   admin_fee.admin_fee_per_pcb,
+  //   admin_fee.total_admin_fee,
+  //   quantity,
+  //   data.admin_cost_percent ?? 0
+  // );
+  const admin_percent_of_cost_per_piece = parseFloat(((admin_fee.admin_fee_per_pcb / allCostPerPCB) * 100).toFixed(2))
+  //const {total_percent_admin_fee, real_cost_per_pcb, total_cost_pcb} = convertAdminFeePerCentToAmount(allCostPerPCB, admin_percent_of_cost_per_piece, data.admin_cost_percent, quantity)
+  const { total_cost_inspec, cost_inspec_per_piece } = calcCostOfInspec(allTotalCost, admin_fee.total_admin_fee, quantity);
+
+
+  const areaAllIn2 = calcTotalBoardArea(width_panel, height_panel, cavity_up, quantity);
+  const areaM2 = calcBoardAreaPerPieceM2(width_panel, height_panel, cavity_up);
+  const areaAllM2 = calcTotalBoardAreaM2(width_panel, height_panel, cavity_up, quantity);
+
+  const rankSup = findRankPriceSupplier(areaAllM2);
+  return {
+    cost_usd: 0,
+    cost_per_pcb: cost,
+    area_in2_per_pcb: Number(areaIn2.toFixed(2)),
+    area_all_in2: Number(areaAllIn2.toFixed(2)),
+    area_m2_per_pcb: areaM2,
+    area_all_m2: areaAllM2,
+    rank_sup: rankSup,
+    total_cost: totalCost,
+    all_cost_per_pcb: allCostPerPCB,
+    all_total_cost: allTotalCost,
+    weight_kg: weight,
+    fix_cost,
+    variable_cost,
+    quantity,
+    shipment_per_pcb: shipmentPerPCB,
+    //forwarder: forwarder,
+    admin_fee_cost: {
+      total_admin_fee: admin_fee.total_admin_fee,
+      admin_fee_per_pcb: admin_fee.admin_fee_per_pcb,
+      sample_size: admin_fee.sample_size,
+      admin_percent_of_cost_per_piece: admin_percent_of_cost_per_piece,
+      cost_inspec_per_piece: cost_inspec_per_piece,
+      total_cost_inspec: total_cost_inspec
+    },
+    // real_cost: realCost,
+    real_cost: {
+      cost_per_pcb: 0,
+      total_cost_pcb: 0
+    },
+    exchange_rate: exchange_rate,
+    model_name: model_name
   };
 }

@@ -11,8 +11,11 @@ import {
     comparePriceFromSup,
     calcShipmentCost,
     updateModePCB,
-    deleteModelPCB
+    deleteModelPCB,
+    calcCostFromAdmin,
+    calcCostBahtPerPcs
 } from "../controller/pcbController";
+
 
 const router = express.Router();
 
@@ -20,9 +23,11 @@ router.get("/", getAllModelPCB);
 router.get("/pcb", getModelPCB);
 
 router.get("/model-name", getModelNameFromSup);
+router.post("/cost-admin", calcCostFromAdmin);
 
 
 router.post("/cost", calculateCost);
+router.post("/change-cost", calcCostBahtPerPcs);
 router.post("/selling-price", calculateSellingPrice);
 router.post("/create-pcb", createPCB);
 

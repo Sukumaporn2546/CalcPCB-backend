@@ -6,7 +6,8 @@ interface CalculatePriceInput {
     margin_percent: number,
     quantity: number,
     all_total_cost: number,
-    area_in2_per_pcb: number
+    area_in2_per_pcb: number,
+    admin_cost_percent: number,
 }
 
 function calCulateAdminFee(data: CalculatePriceInput) {
@@ -20,11 +21,13 @@ function calCulateAdminFee(data: CalculatePriceInput) {
 
 
 export function calculatePCBPrice(data: CalculatePriceInput) {
+    //console.log('calculate')
     const { cost_per_piece, margin_percent, quantity, all_total_cost } = data
-    const admin_fee = calCulateAdminFee(data);
-    const realCost = calcCostFromSupAndAdmin(cost_per_piece, all_total_cost, admin_fee.admin_fee_per_pcb, admin_fee.total_admin_fee, quantity);
-    const prices = calcSellingPrice(cost_per_piece, admin_fee.admin_fee_per_pcb, margin_percent, quantity);
-    const profits = calcSellingProfit(realCost.cost_per_pcb, prices.unitPrice, realCost.total_cost_pcb, prices.totalPrice)
+    // const realCost = calcCostFromSupAndAdmin(cost_per_piece, all_total_cost, admin_fee.admin_fee_per_pcb, admin_fee.total_admin_fee, quantity, data.admin_cost_percent);
+    //const prices = calcSellingPrice(realCost.cost_per_pcb, margin_percent, quantity);
+    const prices = calcSellingPrice(cost_per_piece, margin_percent, quantity);
+    //const profits = calcSellingProfit(realCost.cost_per_pcb, prices.unitPrice, realCost.total_cost_pcb, prices.totalPrice)
+    const profits = calcSellingProfit(cost_per_piece, prices.unitPrice, all_total_cost, prices.totalPrice)
     return {
         prices,
         profits,

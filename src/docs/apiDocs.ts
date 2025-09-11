@@ -601,6 +601,12 @@
  *               exchange_rate:
  *                 type: number
  *                 example: 35
+ *               currency:
+ *                 type: string
+ *                 example: "usd" 
+ *               admin_cost_percent:
+ *                 type: number
+ *                 example: 12
  *  
  *     responses:
  *       200:
@@ -694,6 +700,15 @@
  *                         sample_size:
  *                           type: integer
  *                           example: 125
+ *                         admin_percent_of_cost_per_piece:
+ *                           type: number
+ *                           example: 23.98
+ *                         cost_inspec_per_piece:
+ *                           type: number
+ *                           example: 9.881183999365161
+ *                         total_cost_inspec:
+ *                           type: number
+ *                           example: 49405.9199968258
  *                     realCost:
  *                       type: object
  *                       properties:
@@ -1690,4 +1705,65 @@
  *                   type: string
  *                 error:
  *                   type: object
+ */
+
+/**
+ * @swagger
+ * /api/calculatePCB/cost-admin:
+ *   post:
+ *     summary: Calculate PCB cost including admin fees
+ *     description: Calculate the total PCB cost per piece and overall, considering inspection cost and admin fees.
+ *     tags:
+ *       - Cost
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               cost_inspec_per_piece:
+ *                 type: number
+ *                 example: 21.354509531739065
+ *               total_cost_inspec:
+ *                 type: number
+ *                 example: 106772.54765869533
+ *               quantity:
+ *                 type: integer
+ *                 example: 5000
+ *               admin_cost_percent:
+ *                 type: number
+ *                 example: 12
+ *               admin_fee_per_pcb:
+ *                 type: number
+ *                 example: 1.196
+ *               total_admin_fee:
+ *                 type: number
+ *                 example: 239.20
+ *     responses:
+ *       200:
+ *         description: PCB cost calculation successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: send cost successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     realCost:
+ *                       type: object
+ *                       properties:
+ *                         cost_per_pcb:
+ *                           type: number
+ *                           example: 23.970631475547755
+ *                         total_cost_pcb:
+ *                           type: number
+ *                           example: 119853.15737773877
  */

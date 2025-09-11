@@ -24,6 +24,10 @@ export interface ICost {
   cost_usd: number;
   cost_per_pcb: number;
   area_in2_per_pcb: number;
+  area_all_in2: number;
+  area_m2_per_pcb: number;
+  area_all_m2: number;
+  rank_sup: string[];
   total_cost: number;
   all_cost_per_pcb: number;
   all_total_cost: number;
@@ -35,11 +39,16 @@ export interface ICost {
   admin_fee_cost: IAdminFee;
   real_cost: IRealCost;
   exchange_rate: number;
+  model_name?: string;
+  forwarder?: string;
 }
 export interface IAdminFee {
   total_admin_fee: number;
   admin_fee_per_pcb: number;
   sample_size: number;
+  admin_percent_of_cost_per_piece?: number;
+  cost_inspec_per_piece?: number;
+  total_cost_inspec?: number;
 }
 export interface IRealCost {
   cost_per_pcb: number;

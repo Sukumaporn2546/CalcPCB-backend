@@ -19,7 +19,7 @@ export async function predictPCBCost(input: {
 }): Promise<number> {
   try {
     const response = await axios.post(
-      "http://172.16.16.54:8000/predict",
+      "http://127.0.0.1:8000/predict",
       input,
       {
         headers: {

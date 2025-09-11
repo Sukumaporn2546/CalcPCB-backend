@@ -30,10 +30,13 @@ export enum LayerItem {
 }
 
 export enum CopperWeightItem {
+    HALF_OZ = "0.5 OZ",
     ONE_OZ = "1 OZ",
     TWO_OZ = "2 OZ",
     THREE_OZ = "3 OZ",
-    FOUR_OZ = "4 OZ"
+    FOUR_OZ = "4 OZ",
+    FIVE_OZ = "5 OZ",
+    SIX_OZ = "6 OZ"
 }
 
 export enum SurfaceFinishItem {

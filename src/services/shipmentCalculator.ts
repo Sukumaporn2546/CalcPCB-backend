@@ -35,22 +35,128 @@ type RateTier = {
 };
 
 const rateTable: RateTier[] = [
-    { min: 0, max: 199.99, rateFrom: 2.8, rateTo: 2.5 },
+    { min: 100, max: 199.99, rateFrom: 2.8, rateTo: 2.5 },
     { min: 200, max: 299.99, rateFrom: 2.3, rateTo: 1.9 },
     { min: 300, max: 500, rateFrom: 1.8, rateTo: 1.7 },
 ];
+
 
 export function getRate(weight: number): number {
     const tier = rateTable.find(({ min, max }) => {
         return weight >= min && (max === undefined || weight <= max);
     });
 
-    return tier ? tier.rateTo : 0;
+    if (!tier) return 0; //for < 100 kg
+
+    // ถ้า max ไม่มี หรือ weight == min, คืน rateFrom เลย
+    if (tier.max === undefined || tier.min === tier.max) return tier.rateFrom;
+
+    // Linear interpolation
+    const { min, max, rateFrom, rateTo } = tier;
+    const rate = rateFrom + ((weight - min) / (max - min)) * (rateTo - rateFrom);
+    return rate;
 }
 
-export const calcShippingAirCost = (weight: number): number => {
-    const exchange_rate = 33;
-    const rateChange = getRate(weight);
+export function calcWLess100kg(weight: number, exchange_rate_yuan: number, exchange_rate: number): number {
+    const price_yuan: [number, number][] = [
+        [0.5, 67.59],
+        [1.0, 91.53],
+        [1.5, 108.21],
+        [2.0, 124.89],
+        [2.5, 141.57],
+        [3.0, 141.73],
+        [3.5, 157.55],
+        [4.0, 173.37],
+        [4.5, 189.19],
+        [5.0, 205.01],
+        [5.5, 205.73],
+        [6.0, 219.50],
+        [6.5, 233.78],
+        [7.0, 248.06],
+        [7.5, 262.33],
+        [8.0, 276.60],
+        [8.5, 290.88],
+        [9.0, 305.16],
+        [9.5, 319.43],
+        [10.0, 333.70],
+        [10.5, 333.67],
+        [11.0, 344.95],
+        [11.5, 356.21],
+        [12.0, 367.49],
+        [12.5, 378.75],
+        [13.0, 390.03],
+        [13.5, 401.30],
+        [14.0, 412.57],
+        [14.5, 423.84],
+        [15.0, 435.11],
+        [15.5, 446.38],
+        [16.0, 457.66],
+        [16.5, 468.92],
+        [17.0, 480.20],
+        [17.5, 491.46],
+        [18.0, 502.74],
+        [18.5, 514.01],
+        [19.0, 525.28],
+        [19.5, 536.55],
+        [20.0, 547.82],
+        [20.5, 559.09]
+    ];
+
+    // convert to Baht
+    const price_baht: [number, number][] = price_yuan.map(
+        item => [item[0], parseFloat((item[1] * exchange_rate_yuan).toFixed(2))]
+    );
+
+    // ถ้าน้ำหนักเกิน 20.5
+    if (weight > 20.5) {
+        if (weight <= 71) {
+            return parseFloat(((3.3 * exchange_rate) * weight).toFixed(2));
+        } else if (weight <= 100) {
+            return parseFloat(((3.0 * exchange_rate) * weight).toFixed(2));
+        } else {
+            throw new Error("Weight exceeds 100 kg");
+        }
+    }
+
+    // หาน้ำหนักตรงกับตาราง
+    const exact = price_baht.find(item => item[0] === weight);
+    if (exact) {
+        return Math.round(exact[1]); // คืนค่าอัตราเงินตรง ๆ
+    }
+
+    // ถ้าไม่ตรง ใช้ linear interpolation
+    let lower: [number, number] | null = null;
+    let upper: [number, number] | null = null;
+
+    for (let i = 0; i < price_baht.length; i++) {
+        if (price_baht[i][0] < weight) lower = price_baht[i];
+        if (price_baht[i][0] > weight) {
+            upper = price_baht[i];
+            break;
+        }
+    }
+
+    if (lower && upper) {
+        // linear interpolation
+        const interpolated = lower[1] + ((upper[1] - lower[1]) / (upper[0] - lower[0])) * (weight - lower[0]);
+        return parseFloat(interpolated.toFixed(2));
+    }
+
+    // ถ้าอยู่นอกช่วงตาราง (เล็กเกินไปหรือมากเกินไป)
+    throw new Error("Weight out of range");
+}
+
+
+
+export const calcShippingAirCost = (weight: number, exchange_rate_yuan: number, exchange_rate: number): number => {
+    //exchange_rate = 33;
+    const rateChange = parseFloat(getRate(weight).toFixed(2));
+    console.log('ratechange', rateChange)
+    if (rateChange == 0) {
+        const price_for_less_100_kg = calcWLess100kg(weight, 5, exchange_rate);
+        return price_for_less_100_kg;
+    }
+    console.log('rate', rateChange)
     const AIR_FREIGHT = Math.floor(rateChange * weight * exchange_rate);
     const total_cost = Object.values(COST_ESTIMATE).reduce(
         (sum, cost) => sum + cost,
@@ -74,9 +180,9 @@ type RateTierSea = {
 };
 
 const rateTableSea: RateTierSea[] = [
-    { min: 0, max: 4.99, rate:0.10 },
-    { min: 5, max: 9.99, rate:5 },
-    { min: 10, max: 15, rate:10 },
+    { min: 0, max: 4.99, rate: 0.10 },
+    { min: 5, max: 9.99, rate: 5 },
+    { min: 10, max: 15, rate: 10 },
 ];
 
 export function getRateSea(cbm: number): number {
@@ -89,11 +195,11 @@ export function getRateSea(cbm: number): number {
 
 export const calcShippingSeaCost = (cbm: number, rate: number): number => {
     const exchange_rate = 33;
-    const TERMINAL_CHARGE =  990 ;
+    const TERMINAL_CHARGE = 990;
     //const rateChange = getRateSea(cbm);
     const rateChange = rate;
-    const terminal_charge = TERMINAL_CHARGE*cbm;
-    const SEA_FREIGHT = Math.floor((rateChange * cbm * exchange_rate)+terminal_charge);
+    const terminal_charge = TERMINAL_CHARGE * cbm;
+    const SEA_FREIGHT = Math.floor((rateChange * cbm * exchange_rate) + terminal_charge);
     const total_cost = Object.values(COST_ESTIMATE_SEA).reduce(
         (sum, cost) => sum + cost,
         SEA_FREIGHT,

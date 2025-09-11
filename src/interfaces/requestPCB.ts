@@ -4,6 +4,8 @@ export interface IShipmentCostReq{
     panel_size: IPanelSize;
     cavity_up: number;
     shipment_cost:IShipmentCost;
+    exchange_rate: number;
+    currency: string;
 }
 
 export interface IPanelSize{
@@ -15,6 +17,7 @@ export interface IPanelSize{
 export interface IShipmentCost{
     shipping_type: string;
     shipping_method: string;
+    shipping_cost: string;
     cbm: number;
     rateOceanFreight: number;
     combination: boolean;
