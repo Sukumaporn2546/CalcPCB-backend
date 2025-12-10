@@ -12,7 +12,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: calpcb-backend
 
 jobs:
   build-and-deploy:
@@ -46,8 +46,8 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/sukumaporn2546/calpcb-backend:latest
+            ghcr.io/sukumaporn2546/calpcb-backend:${{ github.sha }}
 
       # 5. copy docker-compose to VM
       - name: Upload docker-compose to VM
